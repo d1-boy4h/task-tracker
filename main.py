@@ -5,7 +5,7 @@ from sys import exit
 from time import strftime
 import pickle
 
-__version__ = '1.1'
+__version__ = '1.1.1'
 
 class TaskTracker:
     def clear_term(self):
@@ -87,24 +87,21 @@ class TaskTracker:
         del self.task_list[task_id]
         print(f'Задача \'{task_name}\' успешно удалена! ')
 
-    def create_actions(self):
-        return (
-            CreateAction('Показать все задачи', self.show_tasks),
-            CreateAction('Добавить задачу', self.make_task),
-            CreateAction('Отметить как выполненную', self.make_task_is_completed),
-            CreateAction('Удалить задачу', self.delete_task),
-            CreateAction('Выход', self.stop)
-        )
-
     def __init__(self):
         self.task_list_file_name = 'tasklist.data'
         self.task_list = self.load_data(self.task_list_file_name)
-        self.action_list = self.create_actions()
+        self.action_list = (
+            {'title': 'Показать все задачи', 'func': lambda: self.show_tasks()},
+            {'title': 'Добавить задачу', 'func': lambda: self.make_task()},
+            {'title': 'Выполнить задачу', 'func': lambda: self.make_task_is_completed()},
+            {'title': 'Удалить задачу', 'func': lambda: self.delete_task()},
+            {'title': 'Выход', 'func': lambda: self.stop()},
+        )
 
     def show_actions(self):
         print('')
         for i in range(0, len(self.action_list)):
-            print(f'{i}. {self.action_list[i]}')
+            print(f'{i}. {self.action_list[i].get('title')}')
 
     def run(self):
         self.welcome()
@@ -112,20 +109,7 @@ class TaskTracker:
         while True:
             prompt = self.get_prompt('Выберите действие', len(self.action_list) - 1)
             if prompt != None:
-                self.action_list[prompt]()
-
-class CreateAction:
-    def __init__(self, title, func = None):
-        self.__title = title
-        self.__func = func
-
-    def __str__(self):
-        return self.__title
-
-    def __call__(self):
-        if self.__func:
-            return self.__func()
-        return None
+                self.action_list[prompt].get('func')()
 
 class CreateTask:
     def __init__(self, desc):
