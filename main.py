@@ -5,12 +5,18 @@ import json
 from sys import exit
 from time import strftime
 
-__version__ = '1.2.1'
+__version__ = '1.2.2'
 
-# TODO: Переделать промпт в команды
-# TODO: Вместо очистки экрана сделать перекрытие экрана
-# TODO: Покрасить текст
-# TODO: Добавить README
+#- Идеи для улучшения и развития программки
+# Переделать промпт в команды
+# Вместо очистки экрана сделать перекрытие экрана
+# Покрасить текст
+# Добавить README
+# Переписать архитектуру по SRP
+    # TaskStorage (save/load)
+    # TaskManager (add/delete/complete)  
+    # TaskView (show/welcome/prompt)
+# Разбить классы по папкам
 
 class TaskTracker:
     def __init__(self):
@@ -30,51 +36,50 @@ class TaskTracker:
 
     def welcome(self):
         self.clear_term()
+
         welcome_string = f' {self.program_name} v{__version__} '
         print(welcome_string.center(len(welcome_string) + 6, '='))
 
     def dump_data(self):
-        with open(self.file_name, 'w') as json_file:
-            data = {}
-            for task in self.task_list:
-                data[task.desc] = task.stringify()
-            json.dump(data, json_file)
-
-            return data
+        try:
+            with open(self.file_name, 'w', encoding='utf-8') as json_file:
+                data = []
+                for task in self.task_list:
+                    data.append(task.to_dict())
+                json.dump(data, json_file, ensure_ascii=False, indent=2)
+        except json.JSONDecodeError:
+            print('Ошибка: не удалось сохранить изменения!')
 
     def load_data(self):
         try:
-            with open(self.file_name, 'r') as json_file:
+            with open(self.file_name, 'r', encoding='utf-8') as json_file:
                 data = json.load(json_file)
                 task_list = []
-                for task_name, task in data.items():
-                    task_list.append(CreateTask.parse(task_name, task))
-                
-                return task_list
+                for task in data:
+                    task_list.append(CreateTask.from_dict(task))
 
+                return task_list
         except FileNotFoundError:
             return []
+        except (IOError, OSError):
+            print(f'Ошибка: не удалось загрузить задачи!')
 
-        
     def stop(self):
         self.dump_data()
         exit()
 
     def show_tasks(self, id_is_visible=False, hide_completed_tasks=False):
-        if (not len(self.task_list)):
+        if not self.task_list:
             print('Похоже, список задач пуст!')
-            return
         else:
-            for task_id in range(0, len(self.task_list)):
-                current_task = self.task_list[task_id]
-
-                if hide_completed_tasks and current_task.is_completed:
+            for i, task in enumerate(self.task_list):
+                if hide_completed_tasks and task.status:
                     continue
 
-                task_string = f'{current_task.time} {current_task.desc} {current_task.get_is_completed()}'
+                task_string = f'{task.time} {task.desc} {"(выполнено)" if task.status else ""}'
 
                 if id_is_visible:
-                    print(f'({task_id}) {task_string}')
+                    print(f'({i}) {task_string}')
                 else:
                     print(task_string)
 
@@ -124,10 +129,10 @@ class TaskTracker:
         self.show_tasks(id_is_visible=True, hide_completed_tasks=True)
         task_id = self.get_prompt('Выберите номер задачи', len(self.task_list) - 1)
         current_task = self.task_list[task_id]
-        if current_task.is_completed == True:
+        if current_task.status:
             print(f'Задача "{current_task.desc}" уже является выполненной! ')
         else:
-            current_task.is_completed = True
+            current_task.status = True
             print(f'Задача "{current_task.desc}" выполнена! ')
 
     def delete_task(self):
@@ -135,48 +140,69 @@ class TaskTracker:
 
         self.show_tasks(id_is_visible=True)
 
-        if len(self.task_list) > 0:
+        if self.task_list:
             task_id = self.get_prompt('Выберите номер задачи', len(self.task_list) - 1)
 
             current_task = self.task_list[task_id]
             del self.task_list[task_id]
             print(f'Задача \'{current_task.desc}\' удалена! ')
+        else:
+            print('Похоже, список задач пуст!')
 
     def show_actions(self):
         print('')
-        for i in range(0, len(self.action_list)):
-            print(f'{i}. {self.action_list[i].get("title")}')
+        for i, action in enumerate(self.action_list):
+            print(f'{i}. {action.get("title")}')
 
     def run(self):
         self.welcome()
         self.show_actions()
         while True:
             prompt = self.get_prompt('\nВыберите действие', len(self.action_list) - 1)
-            if prompt != None:
-                self.action_list[prompt].get('func')()
+
+            if prompt is None:
+                continue
+
+            self.action_list[prompt].get('func')()
 
 class CreateTask:
-    def __init__(self, desc):
-        self.desc = desc
-        self.time = strftime('[%d.%m.%Y %H:%M]')
-        self.is_completed = False
-    
-    def get_is_completed(self):
-        return '(выполнено)' if self.is_completed else ''
+    def __init__(self, desc, time=None, status=False):
+        self._desc = desc
+        self._time = time if time else strftime('[%d.%m.%Y %H:%M]')
+        self._status = False
 
-    def stringify(self):
+    @property
+    def desc(self):
+        return self._desc
+
+    @property
+    def time(self):
+        return self._time
+
+    @property
+    def status(self):
+        return self._status
+
+    @status.setter
+    def status(self, value):
+        if not isinstance(value, bool):
+            raise ValueError('status должен быть типа bool')
+        self._status = value
+
+    def to_dict(self):
         return {
+            'desc': self.desc,
             'time': self.time,
-            'is_completed': self.is_completed
+            'status': self.status
         }
-    
-    @classmethod
-    def parse(cls, desc, data):
-        task = cls(desc)
-        task.is_completed = data['is_completed']
-        task.time = data['time']
 
-        return task
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            data['desc'],
+            data['time'],
+            data['status']
+        )
 
 class WrongActionException(Exception):
     def __init__(self):
