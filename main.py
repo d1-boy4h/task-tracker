@@ -5,21 +5,33 @@ import json
 from sys import exit
 from time import strftime
 
-__version__ = '1.2'
+__version__ = '1.2.1'
 
-# TODO: Сделать так, чтобы выполненные таски не отображались
-# TODO: Вместо очистки экрана сделать перекрытие экрана
 # TODO: Переделать промпт в команды
+# TODO: Вместо очистки экрана сделать перекрытие экрана
 # TODO: Покрасить текст
 # TODO: Добавить README
 
 class TaskTracker:
+    def __init__(self):
+        self.program_name = 'Трекер задач'
+        self.file_name = 'tasklist.json'
+        self.task_list = self.load_data()
+        self.action_list = (
+            {'title': 'Показать все задачи', 'func': lambda: self.show_tasks()},
+            {'title': 'Добавить задачу', 'func': lambda: self.make_task()},
+            {'title': 'Выполнить задачу', 'func': lambda: self.make_task_is_completed()},
+            {'title': 'Удалить задачу', 'func': lambda: self.delete_task()},
+            {'title': 'Выход', 'func': lambda: self.stop()},
+        )
+
     def clear_term(self):
         os.system('cls' if os.name == 'nt' else 'clear')
-    
+
     def welcome(self):
         self.clear_term()
-        print(f'=== Трекер задач v{__version__} ===')
+        welcome_string = f' {self.program_name} v{__version__} '
+        print(welcome_string.center(len(welcome_string) + 6, '='))
 
     def dump_data(self):
         with open(self.file_name, 'w') as json_file:
@@ -47,36 +59,50 @@ class TaskTracker:
     def stop(self):
         self.dump_data()
         exit()
-    
-    def show_tasks(self, id_is_visible = False):
+
+    def show_tasks(self, id_is_visible=False, hide_completed_tasks=False):
         if (not len(self.task_list)):
             print('Похоже, список задач пуст!')
             return
         else:
             for task_id in range(0, len(self.task_list)):
                 current_task = self.task_list[task_id]
+
+                if hide_completed_tasks and current_task.is_completed:
+                    continue
+
                 task_string = f'{current_task.time} {current_task.desc} {current_task.get_is_completed()}'
+
                 if id_is_visible:
                     print(f'({task_id}) {task_string}')
                 else:
                     print(task_string)
 
     def make_task(self):
+        print('Создание задачи:\n')
+
         try:
             new_task_name = input('Введите название задачи: ')
+            if len(new_task_name) == 0:
+                raise NoNameTaskException()
+            self.clear_term()
         except EOFError:
             print('\nВыход из трекера задач')
             self.stop()
         except KeyboardInterrupt:
             print('\nТрекет задач принудительно закрыт!')
             self.stop()
+        except NoNameTaskException as error:
+            print(f'Ошибка: {error.msg}')
         else:
             self.task_list.append(CreateTask(new_task_name))
             print(f'Задача добавлена (ID: {len(self.task_list) - 1})')
 
     def get_prompt(self, msg, max_action_id):
         try:
-            action_id = int(input(f'\n{msg} [0-{max_action_id}]: '))
+            ids_str = f'[0-{max_action_id}]' if max_action_id > 0 else '[0]'
+            action_id = int(input(f'{msg} {ids_str}: '))
+            self.clear_term()
             if action_id > max_action_id or action_id < 0:
                 raise WrongActionException()
         except EOFError:
@@ -87,36 +113,34 @@ class TaskTracker:
             self.stop()
         except ValueError:
             print('Ошибка: действие может быть только в виде цифры!')
-        except WrongActionException as wae:
-            print(f'Ошибка: {wae.msg}')
+        except WrongActionException as error:
+            print(f'Ошибка: {error.msg}')
         else:
             return action_id
 
     def make_task_is_completed(self):
-        self.show_tasks(True)
+        print('Отметка задачи как выполненной:\n')
+
+        self.show_tasks(id_is_visible=True, hide_completed_tasks=True)
         task_id = self.get_prompt('Выберите номер задачи', len(self.task_list) - 1)
         current_task = self.task_list[task_id]
-        current_task.is_completed = True
-        print(f'Задача "{current_task.desc}" выполнена! ')
+        if current_task.is_completed == True:
+            print(f'Задача "{current_task.desc}" уже является выполненной! ')
+        else:
+            current_task.is_completed = True
+            print(f'Задача "{current_task.desc}" выполнена! ')
 
     def delete_task(self):
-        self.show_tasks(True)
-        task_id = self.get_prompt('Выберите номер задачи', len(self.task_list) - 1)
+        print('Удаление задачи:\n')
 
-        current_task = self.task_list[task_id]
-        del self.task_list[task_id]
-        print(f'Задача \'{current_task.desc}\' успешно удалена! ')
+        self.show_tasks(id_is_visible=True)
 
-    def __init__(self):
-        self.file_name = 'tasklist.json'
-        self.task_list = self.load_data()
-        self.action_list = (
-            {'title': 'Показать все задачи', 'func': lambda: self.show_tasks()},
-            {'title': 'Добавить задачу', 'func': lambda: self.make_task()},
-            {'title': 'Выполнить задачу', 'func': lambda: self.make_task_is_completed()},
-            {'title': 'Удалить задачу', 'func': lambda: self.delete_task()},
-            {'title': 'Выход', 'func': lambda: self.stop()},
-        )
+        if len(self.task_list) > 0:
+            task_id = self.get_prompt('Выберите номер задачи', len(self.task_list) - 1)
+
+            current_task = self.task_list[task_id]
+            del self.task_list[task_id]
+            print(f'Задача \'{current_task.desc}\' удалена! ')
 
     def show_actions(self):
         print('')
@@ -127,7 +151,7 @@ class TaskTracker:
         self.welcome()
         self.show_actions()
         while True:
-            prompt = self.get_prompt('Выберите действие', len(self.action_list) - 1)
+            prompt = self.get_prompt('\nВыберите действие', len(self.action_list) - 1)
             if prompt != None:
                 self.action_list[prompt].get('func')()
 
@@ -158,6 +182,11 @@ class WrongActionException(Exception):
     def __init__(self):
         Exception.__init__(self)
         self.msg = 'указано неверное действие!'
+
+class NoNameTaskException(Exception):
+    def __init__(self):
+        Exception.__init__(self)
+        self.msg = 'задача не может быть пустой!'
 
 if __name__ == '__main__':
     tracker = TaskTracker()
