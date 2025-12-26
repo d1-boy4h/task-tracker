@@ -4,10 +4,9 @@ import json
 from sys import exit
 from time import strftime
 
-__version__ = '1.3'
+__version__ = '1.3.1'
 
 #- Идеи для улучшения и развития программки
-# Сделать сохранение данных после каждого действия
 # Покрасить текст
 # Переписать архитектуру по SRP
     # TaskStorage (save/load)
@@ -28,8 +27,8 @@ class TaskTracker:
             'add': self.make_task,
             'perf': self.perform_task,
             'del': self.delete_task,
-            'exit': self.stop,
             'help': self.get_help,
+            'exit': self.stop,
         }
 
     def welcome(self):
@@ -71,7 +70,7 @@ class TaskTracker:
     def stop(self):
         '''Закрывает трекер задач'''
 
-        self.dump_data()
+        print('До свидания!')
         exit()
 
     def show_tasks(self, id_is_visible=False, hide_completed_tasks=False):
@@ -122,6 +121,7 @@ class TaskTracker:
             print(f'Ошибка: {error.msg}')
         else:
             self.task_list.append(CreateTask(new_task_name))
+            self.dump_data()
             print(f'Задача успешно добавлена.')
 
     def perform_task(self):
@@ -137,6 +137,7 @@ class TaskTracker:
                 print(f'Задача "{current_task.desc}" уже является выполненной! ')
             else:
                 current_task.status = True
+                self.dump_data()
                 print(f'Задача "{current_task.desc}" выполнена! ')
         except ValueError:
             print('Ошибка: некорректная обработка номера задачи!')
@@ -154,6 +155,7 @@ class TaskTracker:
 
             current_task = self.task_list[task_id]
             del self.task_list[task_id]
+            self.dump_data()
             print(f'Задача "{current_task.desc}" успешно удалена.')
         except ValueError:
             print('Ошибка: некорректная обработка номера задачи!')
@@ -173,7 +175,7 @@ class CreateTask:
     def __init__(self, desc, time=None, status=False):
         self._desc = desc
         self._time = time if time else strftime('[%d.%m.%Y %H:%M]')
-        self._status = False
+        self._status = status
 
     @property
     def desc(self):
