@@ -4,12 +4,10 @@ import json
 from sys import exit
 from time import strftime
 
-__version__ = '1.3.2'
+__version__ = '1.3.3'
 
 #- Идеи для улучшения и развития программки
-    # Покрасить текст
 # Переписать архитектуру по SRP
-    # TaskStorage (save/load)
     # TaskManager (add/delete/complete)  
     # TaskView (show/welcome/prompt)
 # Разбить классы по папкам
@@ -68,18 +66,51 @@ class Console:
     def error(cls, msg):
         print(Colors.RED + msg + Colors.RESET)
 
+class TaskStorage:
+    '''Класс загрузки и сохранения задач'''
+
+    def __init__(self, filename='tasklist.json'):
+        self.filename = filename
+        self.task_list = self.load()
+
+    def save(self):
+        '''Сохраняет данные в файл JSON'''
+        try:
+            with open(self.filename, 'w', encoding='utf-8') as json_file:
+                data = []
+                for task in self.task_list:
+                    data.append(task.to_dict())
+                json.dump(data, json_file, ensure_ascii=False, indent=2)
+        except json.JSONDecodeError:
+            Console.error('Ошибка: не удалось сохранить изменения!')
+
+    def load(self):
+        '''Загружает данные из файла JSON'''
+        try:
+            with open(self.filename, 'r', encoding='utf-8') as json_file:
+                data = json.load(json_file)
+                task_list = []
+                for task in data:
+                    task_list.append(CreateTask.from_dict(task))
+
+                return task_list
+        except FileNotFoundError:
+            return []
+        except (IOError, OSError):
+            Console.error(f'Ошибка: не удалось загрузить задачи!')
+
+
 class TaskTracker:
     '''Главный класс программы'''
 
     def __init__(self):
+        self.task_storage = TaskStorage()
         self.program_name = 'Трекер задач'
-        self.file_name = 'tasklist.json'
-        self.task_list = self.load_data()
         self.actions = {
             'list': self.show_tasks,
             'add': self.make_task,
-            'perf': self.perform_task,
-            'del': self.delete_task,
+            'complete': self.complete_task,
+            'delete': self.delete_task,
             'help': self.get_help,
             'exit': self.stop,
         }
@@ -92,34 +123,6 @@ class TaskTracker:
 
         print('  Для справки введите help.\n')
 
-    def dump_data(self):
-        '''Сохраняет данные в файл JSON'''
-
-        try:
-            with open(self.file_name, 'w', encoding='utf-8') as json_file:
-                data = []
-                for task in self.task_list:
-                    data.append(task.to_dict())
-                json.dump(data, json_file, ensure_ascii=False, indent=2)
-        except json.JSONDecodeError:
-            Console.error('Ошибка: не удалось сохранить изменения!')
-
-    def load_data(self):
-        '''Загружает данные из файла JSON'''
-
-        try:
-            with open(self.file_name, 'r', encoding='utf-8') as json_file:
-                data = json.load(json_file)
-                task_list = []
-                for task in data:
-                    task_list.append(CreateTask.from_dict(task))
-
-                return task_list
-        except FileNotFoundError:
-            return []
-        except (IOError, OSError):
-            Console.error(f'Ошибка: не удалось загрузить задачи!')
-
     def stop(self):
         '''Закрывает трекер задач'''
 
@@ -129,10 +132,10 @@ class TaskTracker:
     def show_tasks(self, id_is_visible=False, hide_completed_tasks=False):
         '''Показывает список всех задач'''
 
-        if not self.task_list:
+        if not self.task_storage.task_list:
             Console.warn('Похоже, список задач пуст.')
         else:
-            for i, task in enumerate(self.task_list):
+            for i, task in enumerate(self.task_storage.task_list):
                 if hide_completed_tasks and task.status:
                     continue
 
@@ -173,24 +176,24 @@ class TaskTracker:
         except NoNameTaskException as error:
             Console.error(f'Ошибка: {error.msg}')
         else:
-            self.task_list.append(CreateTask(new_task_name))
-            self.dump_data()
+            self.task_storage.task_list.append(CreateTask(new_task_name))
+            self.task_storage.save()
             Console.success(f'Задача успешно добавлена.')
 
-    def perform_task(self):
+    def complete_task(self):
         '''Отмечает задачу как выполненную'''
 
         self.show_tasks(id_is_visible=True, hide_completed_tasks=True)
-        if not self.task_list: return
+        if not self.task_storage.task_list: return
 
         try:
             task_id = int(self.get_prompt('Выберите номер задачи'))
-            current_task = self.task_list[task_id]
+            current_task = self.task_storage.task_list[task_id]
             if current_task.status:
                 Console.warn(f'Задача "{current_task.desc}" уже является выполненной! ')
             else:
                 current_task.status = True
-                self.dump_data()
+                self.task_storage.save()
                 Console.success(f'Задача "{current_task.desc}" выполнена! ')
         except ValueError:
             Console.error('Ошибка: некорректная обработка номера задачи!')
@@ -201,14 +204,14 @@ class TaskTracker:
         '''Удаляет задачу'''
 
         self.show_tasks(id_is_visible=True)
-        if not self.task_list: return
+        if not self.task_storage.task_list: return
 
         try:
             task_id = int(self.get_prompt('Выберите номер задачи'))
 
-            current_task = self.task_list[task_id]
-            del self.task_list[task_id]
-            self.dump_data()
+            current_task = self.task_storage.task_list[task_id]
+            del self.task_storage.task_list[task_id]
+            self.task_storage.save()
             Console.success(f'Задача "{current_task.desc}" успешно удалена.')
         except ValueError:
             Console.error('Ошибка: некорректная обработка номера задачи!')
