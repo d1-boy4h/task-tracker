@@ -31,7 +31,7 @@ class Interface:
     def show_welcome(cls):
         '''Показывает начальный экран'''
         welcome_string = f' {PROGRAM_NAME} v{__version__} '
-        cls.info(f'{Colors.BOLD}{Colors.BG_WHITE}{welcome_string.center(len(welcome_string) + 6, '=')}{Colors.RESET}')
+        cls.info(f'{Colors.BOLD}{Colors.BG_WHITE}{Colors.BRIGHT_BLACK}{welcome_string.center(len(welcome_string) + 6, '=')}{Colors.RESET}')
 
         cls.info('  Для справки введите help.\n')
 
