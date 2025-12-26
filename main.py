@@ -4,16 +4,69 @@ import json
 from sys import exit
 from time import strftime
 
-__version__ = '1.3.1'
+__version__ = '1.3.2'
 
 #- Идеи для улучшения и развития программки
-# Покрасить текст
+    # Покрасить текст
 # Переписать архитектуру по SRP
     # TaskStorage (save/load)
     # TaskManager (add/delete/complete)  
     # TaskView (show/welcome/prompt)
 # Разбить классы по папкам
 # Добавить README
+
+class Colors:
+    '''Класс с ANSI кодами для цветного вывода.'''
+
+    # Сброс
+    RESET = '\033[0m'
+
+    # Цвета текста
+    BLACK = '\033[30m'
+    RED = '\033[31m'
+    GREEN = '\033[32m'
+    YELLOW = '\033[33m'
+    BLUE = '\033[34m'
+    MAGENTA = '\033[35m'
+    CYAN = '\033[36m'
+    WHITE = '\033[37m'
+
+    # Цвета фона
+    BG_BLACK = '\033[40m'
+    BG_RED = '\033[41m'
+    BG_GREEN = '\033[42m'
+    BG_YELLOW = '\033[43m'
+    BG_BLUE = '\033[44m'
+    BG_MAGENTA = '\033[45m'
+    BG_CYAN = '\033[46m'
+    BG_WHITE = '\033[47m'
+
+    # Яркие цвета
+    BRIGHT_BLACK = '\033[90m'
+    BRIGHT_RED = '\033[91m'
+    BRIGHT_GREEN = '\033[92m'
+    BRIGHT_YELLOW = '\033[93m'
+    BRIGHT_BLUE = '\033[94m'
+    BRIGHT_MAGENTA = '\033[95m'
+    BRIGHT_CYAN = '\033[96m'
+    BRIGHT_WHITE = '\033[97m'
+
+    # Стили
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+class Console:
+    @classmethod
+    def success(cls, msg):
+        print(Colors.GREEN + msg + Colors.RESET)
+
+    @classmethod
+    def warn(cls, msg):
+        print(Colors.YELLOW + msg + Colors.RESET)
+    
+    @classmethod
+    def error(cls, msg):
+        print(Colors.RED + msg + Colors.RESET)
 
 class TaskTracker:
     '''Главный класс программы'''
@@ -35,7 +88,7 @@ class TaskTracker:
         '''Показывает начальный экран'''
 
         welcome_string = f' {self.program_name} v{__version__} '
-        print(welcome_string.center(len(welcome_string) + 6, '='))
+        print(f'{Colors.BOLD}{Colors.BG_WHITE}{welcome_string.center(len(welcome_string) + 6, '=')}{Colors.RESET}')
 
         print('  Для справки введите help.\n')
 
@@ -49,7 +102,7 @@ class TaskTracker:
                     data.append(task.to_dict())
                 json.dump(data, json_file, ensure_ascii=False, indent=2)
         except json.JSONDecodeError:
-            print('Ошибка: не удалось сохранить изменения!')
+            Console.error('Ошибка: не удалось сохранить изменения!')
 
     def load_data(self):
         '''Загружает данные из файла JSON'''
@@ -65,19 +118,19 @@ class TaskTracker:
         except FileNotFoundError:
             return []
         except (IOError, OSError):
-            print(f'Ошибка: не удалось загрузить задачи!')
+            Console.error(f'Ошибка: не удалось загрузить задачи!')
 
     def stop(self):
         '''Закрывает трекер задач'''
 
-        print('До свидания!')
+        Console.success('До свидания!')
         exit()
 
     def show_tasks(self, id_is_visible=False, hide_completed_tasks=False):
         '''Показывает список всех задач'''
 
         if not self.task_list:
-            print('Похоже, список задач пуст.')
+            Console.warn('Похоже, список задач пуст.')
         else:
             for i, task in enumerate(self.task_list):
                 if hide_completed_tasks and task.status:
@@ -96,10 +149,10 @@ class TaskTracker:
         try:
             prompt = input((f'[{msg}]' if len(msg) else '') + '> ')
         except EOFError:
-            print('\nВыход из трекера задач')
+            Console.warn('\nВыход из трекера задач')
             self.stop()
         except KeyboardInterrupt:
-            print('\nТрекет задач принудительно закрыт!')
+            Console.warn('\nТрекет задач принудительно закрыт!')
             self.stop()
         else:
             return prompt
@@ -118,11 +171,11 @@ class TaskTracker:
             if len(new_task_name) == 0:
                 raise NoNameTaskException()
         except NoNameTaskException as error:
-            print(f'Ошибка: {error.msg}')
+            Console.error(f'Ошибка: {error.msg}')
         else:
             self.task_list.append(CreateTask(new_task_name))
             self.dump_data()
-            print(f'Задача успешно добавлена.')
+            Console.success(f'Задача успешно добавлена.')
 
     def perform_task(self):
         '''Отмечает задачу как выполненную'''
@@ -134,15 +187,15 @@ class TaskTracker:
             task_id = int(self.get_prompt('Выберите номер задачи'))
             current_task = self.task_list[task_id]
             if current_task.status:
-                print(f'Задача "{current_task.desc}" уже является выполненной! ')
+                Console.warn(f'Задача "{current_task.desc}" уже является выполненной! ')
             else:
                 current_task.status = True
                 self.dump_data()
-                print(f'Задача "{current_task.desc}" выполнена! ')
+                Console.success(f'Задача "{current_task.desc}" выполнена! ')
         except ValueError:
-            print('Ошибка: некорректная обработка номера задачи!')
+            Console.error('Ошибка: некорректная обработка номера задачи!')
         except IndexError:
-            print('Ошибка: некорректный номер задачи!')
+            Console.error('Ошибка: некорректный номер задачи!')
 
     def delete_task(self):
         '''Удаляет задачу'''
@@ -156,11 +209,11 @@ class TaskTracker:
             current_task = self.task_list[task_id]
             del self.task_list[task_id]
             self.dump_data()
-            print(f'Задача "{current_task.desc}" успешно удалена.')
+            Console.success(f'Задача "{current_task.desc}" успешно удалена.')
         except ValueError:
-            print('Ошибка: некорректная обработка номера задачи!')
+            Console.error('Ошибка: некорректная обработка номера задачи!')
         except IndexError:
-            print('Ошибка: некорректный номер задачи!')
+            Console.error('Ошибка: некорректный номер задачи!')
 
     def run(self):
         self.welcome()
@@ -169,7 +222,7 @@ class TaskTracker:
                 prompt = self.get_prompt()
                 self.actions[prompt]()
             except KeyError:
-                print(f'Ошибка: такой команды не существует!')
+                Console.error(f'Ошибка: такой команды не существует!')
 
 class CreateTask:
     def __init__(self, desc, time=None, status=False):
