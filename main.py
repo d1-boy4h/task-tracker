@@ -4,7 +4,7 @@ import json
 from sys import exit
 from time import strftime
 
-__version__ = '1.3.3'
+__version__ = '1.3.4'
 
 #- Идеи для улучшения и развития программки
 # Переписать архитектуру по SRP
@@ -185,6 +185,12 @@ class TaskTracker:
 
         self.show_tasks(id_is_visible=True, hide_completed_tasks=True)
         if not self.task_storage.task_list: return
+
+        for task_id, task in enumerate(self.task_storage.task_list):
+            if not task.status: break
+            if task.status and task_id == len(self.task_storage.task_list) - 1:
+                Console.warn('Все задачи уже выполнены.')
+                return
 
         try:
             task_id = int(self.get_prompt('Выберите номер задачи'))
