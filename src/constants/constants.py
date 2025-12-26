@@ -2,5 +2,5 @@
 
 PROGRAM_NAME = 'Task Tracker'
 
-__version__ = '1.5.2b'
+__version__ = '1.5.3'
 __author__ = 'd1_boy4h'

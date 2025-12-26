@@ -4,8 +4,6 @@
 Task Tracker - консольное приложение для управления задачами.
 '''
 
-# TODO: Добавить README
-
 from src.core import TaskTracker
 
 if __name__ == '__main__':
