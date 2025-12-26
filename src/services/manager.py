@@ -1,8 +1,7 @@
 '''Менеджер задач (бизнес-логика).'''
 
-from ..models.task import Task
-from ..models.exceptions import NoNameTaskException
-from ..ui.interface import Interface
+from ..models import Task, NoNameTaskException
+from ..ui import Interface
 
 class TaskManager:
     def __init__(self, storage):

@@ -1,7 +1,7 @@
 '''Хранилище задач.'''
 
-from ..ui.interface import Interface
-from ..models.task import Task 
+from ..ui import Interface
+from ..models import Task 
 import json
 
 class TaskStorage:

@@ -1,8 +1,8 @@
 '''Основной координатор программы'''
 
-from ..stores.storage import TaskStorage
-from ..services.manager import TaskManager
-from ..ui.interface import Interface
+from ..stores import TaskStorage
+from ..services import TaskManager
+from ..ui import Interface
 
 class TaskTracker:
     def __init__(self, storage=None, manager=None):

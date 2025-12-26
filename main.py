@@ -6,7 +6,7 @@ Task Tracker - консольное приложение для управлен
 
 # TODO: Добавить README
 
-from src.core.tracker import TaskTracker
+from src.core import TaskTracker
 
 if __name__ == '__main__':
     tracker = TaskTracker()

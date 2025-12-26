@@ -1,8 +1,8 @@
 '''Консольный интерфейс ввода/вывода.'''
 
-from .colors import Colors
 from sys import exit
-from ..core.constants import PROGRAM_NAME, __version__
+from .colors import Colors
+from ..constants import PROGRAM_NAME, __version__
 
 class Interface:
     @classmethod
