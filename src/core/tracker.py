@@ -8,8 +8,12 @@ class TaskTracker:
     def __init__(self, storage=None, manager=None):
         self.storage = storage or TaskStorage()
         self.manager = manager or TaskManager(self.storage)
+
+        self._display_tasks_handler = lambda: Interface.display_tasks(self.storage.tasks)
+        self._display_tasks_handler.__doc__ = Interface.display_tasks.__doc__
+
         self.actions = {
-            'list': lambda: Interface.display_tasks(self.storage.tasks),
+            'list': self._display_tasks_handler,
             'add': self.manager.add_task,
             'complete': self.manager.complete_task,
             'delete': self.manager.delete_task,
