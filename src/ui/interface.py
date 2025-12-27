@@ -5,8 +5,8 @@ from .colors import Colors
 from ..constants import PROGRAM_NAME, __version__
 
 class Interface:
-    @classmethod
-    def info(cls, msg):
+    @staticmethod
+    def info(msg):
         print(msg)
 
     @classmethod
