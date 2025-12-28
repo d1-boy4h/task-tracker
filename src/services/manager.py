@@ -20,6 +20,26 @@ class TaskManager:
             self.storage.save(self.storage.tasks)
             Interface.success(f'Задача успешно добавлена.')
 
+    def edit_task(self):
+        '''Изменяет название задачи'''
+        Interface.display_tasks(self.storage.tasks, id_is_visible=True)
+        if not self.storage.tasks: return
+
+        # TODO: Тут остановился
+        try:
+            task_id = int(Interface.get_command('Выберите номер задачи'))
+            current_task = self.storage.tasks[task_id]
+            if current_task.status:
+                Interface.warn(f'Задача "{current_task.desc}" уже является выполненной! ')
+            else:
+                current_task.status = True
+                self.storage.save(self.storage.tasks)
+                Interface.success(f'Задача "{current_task.desc}" выполнена! ')
+        except ValueError:
+            Interface.error('Ошибка: некорректная обработка номера задачи!')
+        except IndexError:
+            Interface.error('Ошибка: некорректный номер задачи!')
+
     def complete_task(self):
         '''Отмечает задачу как выполненную'''
         Interface.display_tasks(self.storage.tasks, id_is_visible=True, hide_completed_tasks=True)
