@@ -15,6 +15,7 @@ class TaskTracker:
         self.actions = {
             'list': self._display_tasks_handler,
             'add': self.manager.add_task,
+            'edit': self.manager.edit_task,
             'complete': self.manager.complete_task,
             'delete': self.manager.delete_task,
             'help': self.get_help,

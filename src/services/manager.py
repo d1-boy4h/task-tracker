@@ -11,13 +11,15 @@ class TaskManager:
         '''Создаёт новую задачу'''
         try:
             new_task_name = Interface.get_command('Введите название задачи')
-            if len(new_task_name) == 0:
+
+            if not new_task_name:
                 raise NoNameTaskException()
+
+            self.storage.tasks.append(Task(new_task_name))
+            self.storage.save(self.storage.tasks)
         except NoNameTaskException as error:
             Interface.error(f'Ошибка: {error.msg}')
         else:
-            self.storage.tasks.append(Task(new_task_name))
-            self.storage.save(self.storage.tasks)
             Interface.success(f'Задача успешно добавлена.')
 
     def edit_task(self):
@@ -25,20 +27,25 @@ class TaskManager:
         Interface.display_tasks(self.storage.tasks, id_is_visible=True)
         if not self.storage.tasks: return
 
-        # TODO: Тут остановился
         try:
             task_id = int(Interface.get_command('Выберите номер задачи'))
             current_task = self.storage.tasks[task_id]
-            if current_task.status:
-                Interface.warn(f'Задача "{current_task.desc}" уже является выполненной! ')
-            else:
-                current_task.status = True
-                self.storage.save(self.storage.tasks)
-                Interface.success(f'Задача "{current_task.desc}" выполнена! ')
+            new_task_name = Interface.get_command('Введите новое название задачи')
+
+            if not new_task_name:
+                raise NoNameTaskException()
+
+            old_task_name = current_task.desc
+            current_task.desc = new_task_name
+            self.storage.save(self.storage.tasks)
         except ValueError:
             Interface.error('Ошибка: некорректная обработка номера задачи!')
         except IndexError:
             Interface.error('Ошибка: некорректный номер задачи!')
+        except NoNameTaskException as error:
+            Interface.error(f'Ошибка: {error.msg}')
+        else:
+            Interface.success(f'Задача "{old_task_name}" переименована в "{new_task_name}"! ')
 
     def complete_task(self):
         '''Отмечает задачу как выполненную'''
@@ -54,16 +61,18 @@ class TaskManager:
         try:
             task_id = int(Interface.get_command('Выберите номер задачи'))
             current_task = self.storage.tasks[task_id]
+
             if current_task.status:
                 Interface.warn(f'Задача "{current_task.desc}" уже является выполненной! ')
-            else:
-                current_task.status = True
-                self.storage.save(self.storage.tasks)
-                Interface.success(f'Задача "{current_task.desc}" выполнена! ')
+
+            current_task.status = True
+            self.storage.save(self.storage.tasks)
         except ValueError:
             Interface.error('Ошибка: некорректная обработка номера задачи!')
         except IndexError:
             Interface.error('Ошибка: некорректный номер задачи!')
+        else:
+            Interface.success(f'Задача "{current_task.desc}" выполнена! ')
 
     def delete_task(self):
         '''Удаляет задачу'''
@@ -76,8 +85,9 @@ class TaskManager:
             current_task = self.storage.tasks[task_id]
             del self.storage.tasks[task_id]
             self.storage.save(self.storage.tasks)
-            Interface.success(f'Задача "{current_task.desc}" успешно удалена.')
         except ValueError:
             Interface.error('Ошибка: некорректная обработка номера задачи!')
         except IndexError:
             Interface.error('Ошибка: некорректный номер задачи!')
+        else:
+            Interface.success(f'Задача "{current_task.desc}" успешно удалена.')

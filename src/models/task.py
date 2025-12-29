@@ -12,6 +12,10 @@ class Task:
     def desc(self):
         return self._desc
 
+    @desc.setter
+    def desc(self, value):
+        self._desc = value
+
     @property
     def time(self):
         return self._time
